@@ -388,7 +388,7 @@ This repository demonstrates expertise in: AI/ML pipeline architecture, multi-mo
 | [metasystem-master](https://github.com/organvm-ii-poiesis/metasystem-master) | II | Performance SDK for real-time AI-collaborative installations |
 | [learning-resources](https://github.com/organvm-ii-poiesis/learning-resources) | II | AI collaboration taught in Tier 2 curriculum |
 | [example-interactive-installation](https://github.com/organvm-ii-poiesis/example-interactive-installation) | II | Autonomous drift mode uses AI-collaborative generation |
-| [recursive-engine](https://github.com/organvm-i-theoria/recursive-engine) | I | Theoretical foundations for recursive creative processes |
+| [recursive-engine](https://github.com/organvm-i-theoria/recursive-engine--generative-entity) | I | Theoretical foundations for recursive creative processes |
 | [public-process](https://github.com/organvm-v-logos/public-process) | V | Essays on AI collaboration as building-in-public practice |
 
 ---
