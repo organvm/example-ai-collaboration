@@ -1,0 +1,210 @@
+"""Export functions for collaboration sessions.
+
+Produces markdown process documents, JSON exports, and summary reports
+from completed collaboration sessions.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import timezone
+from typing import Any
+
+from .attribution import AttributionTracker
+from .metrics import SessionMetrics, calculate_metrics
+from .session import CollaborationSession, ContributorType
+
+
+def _format_timestamp(iso_str: str) -> str:
+    """Format an ISO timestamp for display."""
+    # Strip timezone info for cleaner display
+    if "T" in iso_str:
+        date_part, time_part = iso_str.split("T")
+        time_part = time_part.split("+")[0].split("Z")[0]
+        # Truncate microseconds
+        if "." in time_part:
+            time_part = time_part[:time_part.index(".") + 3]
+        return f"{date_part} {time_part} UTC"
+    return iso_str
+
+
+def export_to_markdown(
+    session: CollaborationSession,
+    tracker: AttributionTracker | None = None,
+    metrics: SessionMetrics | None = None,
+) -> str:
+    """Export a collaboration session to a markdown process document.
+
+    Includes: title, participants, timeline, each turn with attribution,
+    and summary metrics.
+
+    Args:
+        session: The session to export.
+        tracker: Optional attribution tracker for per-turn attribution labels.
+        metrics: Optional pre-computed metrics. If None and tracker is provided,
+            metrics are computed.
+
+    Returns:
+        Complete markdown document as a string.
+    """
+    if tracker is not None and metrics is None:
+        metrics = calculate_metrics(session, tracker)
+
+    lines: list[str] = []
+
+    # Title
+    lines.append(f"# {session.title}")
+    lines.append("")
+    lines.append(f"**Session ID:** `{session.id}`")
+    lines.append(f"**Status:** {session.state.value}")
+    lines.append(
+        f"**Created:** {_format_timestamp(session.created_at.isoformat())}"
+    )
+    if session.closed_at:
+        lines.append(
+            f"**Closed:** {_format_timestamp(session.closed_at.isoformat())}"
+        )
+    lines.append("")
+
+    # Participants
+    lines.append("## Participants")
+    lines.append("")
+    for p in session.participants:
+        role_label = "Human" if p.role == ContributorType.HUMAN else "AI"
+        model_info = f" ({p.model})" if p.model else ""
+        lines.append(f"- **{p.name}** [{role_label}]{model_info}")
+    lines.append("")
+
+    # Timeline
+    lines.append("## Collaboration Timeline")
+    lines.append("")
+
+    for i, turn in enumerate(session.turns, 1):
+        role_emoji = "Human" if turn.contributor_type == ContributorType.HUMAN else "AI"
+        lines.append(f"### Turn {i}: {turn.contributor} [{role_emoji}]")
+        lines.append("")
+        lines.append(
+            f"*{_format_timestamp(turn.timestamp.isoformat())}*"
+        )
+        if turn.parent_turn_id:
+            lines.append(f"*In reply to turn: `{turn.parent_turn_id[:8]}...`*")
+        lines.append("")
+
+        # Attribution label
+        if tracker is not None:
+            record = tracker.get_record(turn.id)
+            if record is not None:
+                lines.append(
+                    f"> **Attribution:** {record.category.value} "
+                    f"(confidence: {record.confidence:.0%})"
+                )
+                lines.append(f"> {record.evidence}")
+                lines.append("")
+
+        # Content
+        lines.append(turn.content)
+        lines.append("")
+
+        # Metadata
+        if turn.metadata:
+            decision = turn.metadata.get("decision")
+            if decision:
+                lines.append(f"**Decision:** {decision}")
+                lines.append("")
+
+        lines.append("---")
+        lines.append("")
+
+    # Summary Metrics
+    if metrics is not None:
+        lines.append("## Session Metrics")
+        lines.append("")
+        lines.append("| Metric | Value |")
+        lines.append("|--------|-------|")
+        lines.append(f"| Total Turns | {metrics.total_turns} |")
+        lines.append(f"| Human Turns | {metrics.human_turns} |")
+        lines.append(f"| AI Turns | {metrics.ai_turns} |")
+        lines.append(f"| Total Words | {metrics.total_word_count:,} |")
+        lines.append(f"| Human Words | {metrics.human_word_count:,} |")
+        lines.append(f"| AI Words | {metrics.ai_word_count:,} |")
+        lines.append(f"| Human-AI Ratio | {metrics.human_ai_ratio:.2f} |")
+        lines.append(
+            f"| Avg Edit Distance | {metrics.avg_edit_distance:.1%} |"
+        )
+        lines.append(
+            f"| Co-Creation | {metrics.co_creation_percentage:.1f}% |"
+        )
+        if metrics.session_duration is not None:
+            minutes = metrics.session_duration / 60
+            lines.append(f"| Duration | {minutes:.1f} min |")
+        lines.append("")
+
+    # Footer
+    lines.append("---")
+    lines.append(
+        "*Generated by the AI-conductor collaboration tracking system.*"
+    )
+
+    return "\n".join(lines)
+
+
+def export_to_json(
+    session: CollaborationSession,
+    tracker: AttributionTracker | None = None,
+    metrics: SessionMetrics | None = None,
+) -> str:
+    """Export a collaboration session to JSON.
+
+    Args:
+        session: The session to export.
+        tracker: Optional attribution tracker.
+        metrics: Optional pre-computed metrics.
+
+    Returns:
+        JSON string with session data.
+    """
+    if tracker is not None and metrics is None:
+        metrics = calculate_metrics(session, tracker)
+
+    data: dict[str, Any] = {
+        "session": session.to_dict(),
+    }
+    if tracker is not None:
+        data["attribution"] = tracker.to_dict()
+    if metrics is not None:
+        data["metrics"] = metrics.to_dict()
+
+    return json.dumps(data, indent=2, default=str)
+
+
+def export_summary(
+    session: CollaborationSession,
+    tracker: AttributionTracker | None = None,
+    metrics: SessionMetrics | None = None,
+) -> str:
+    """Export a short summary with key metrics.
+
+    Args:
+        session: The session to summarize.
+        tracker: Optional attribution tracker.
+        metrics: Optional pre-computed metrics.
+
+    Returns:
+        Short summary string.
+    """
+    if tracker is not None and metrics is None:
+        metrics = calculate_metrics(session, tracker)
+
+    lines: list[str] = [
+        f"Session: {session.title}",
+        f"State: {session.state.value}",
+        f"Participants: {', '.join(p.name for p in session.participants)}",
+    ]
+
+    if metrics is not None:
+        lines.extend(metrics.summary_lines())
+    else:
+        lines.append(f"Total turns: {session.total_turns()}")
+        lines.append(f"Total words: {session.total_word_count():,}")
+
+    return "\n".join(lines)
