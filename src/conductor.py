@@ -101,7 +101,7 @@ _MOCK_CODE_TEMPLATES: list[str] = [
         "    Returns:\n"
         "        Dictionary containing processed results.\n"
         '    """\n'
-        "    results: dict[str, Any] = {}\n"
+        "    results: dict[str, Any] = {{}}\n"
         "    for item in data:\n"
         "        key = str(item)\n"
         "        results[key] = len(str(item))\n"
@@ -114,8 +114,8 @@ _MOCK_CODE_TEMPLATES: list[str] = [
         "    and output formatting.\n"
         '    """\n\n'
         "    def __init__(self, config: dict[str, Any] | None = None) -> None:\n"
-        "        self.config = config or {}\n"
-        "        self._cache: dict[str, Any] = {}\n\n"
+        "        self.config = config or {{}}\n"
+        "        self._cache: dict[str, Any] = {{}}\n\n"
         "    def process(self, input_data: str) -> str:\n"
         '        """Process input and return formatted output."""\n'
         "        return input_data.strip().lower()\n"
