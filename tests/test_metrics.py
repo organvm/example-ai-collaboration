@@ -32,7 +32,7 @@ def _make_session_with_turns() -> tuple[CollaborationSession, AttributionTracker
     )
     tracker.record_human_only(t1.id, t1.content)
 
-    # Turn 2: AI response (5 words), accepted verbatim
+    # Turn 2: AI response (6 words), accepted verbatim
     ai_text = "Testing ensures software works correctly always"
     t2 = session.add_turn(
         contributor="AI",
@@ -86,9 +86,9 @@ class TestCalculateMetrics:
         metrics = calculate_metrics(session, tracker)
         # Human: "Write about testing" (3) + "Looks good" (2) = 5
         assert metrics.human_word_count == 5
-        # AI: 5 + 7 = 12
-        assert metrics.ai_word_count == 12
-        assert metrics.total_word_count == 17
+        # AI: 6 + 7 = 13
+        assert metrics.ai_word_count == 13
+        assert metrics.total_word_count == 18
 
     def test_human_ai_ratio(self) -> None:
         session, tracker = _make_session_with_turns()
