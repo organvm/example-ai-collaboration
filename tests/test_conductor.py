@@ -9,8 +9,6 @@ from src.conductor import AIConductor, ConductorDecision
 from src.session import (
     CollaborationSession,
     ContributorType,
-    Participant,
-    SessionState,
 )
 
 

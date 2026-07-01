@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.attribution import AttributionCategory, AttributionTracker
+from src.attribution import AttributionTracker
 from src.metrics import SessionMetrics, calculate_metrics
 from src.session import (
     CollaborationSession,

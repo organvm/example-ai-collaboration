@@ -7,7 +7,6 @@ from completed collaboration sessions.
 from __future__ import annotations
 
 import json
-from datetime import timezone
 from typing import Any
 
 from .attribution import AttributionTracker
